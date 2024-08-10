@@ -1,0 +1,66 @@
+// Frontend: React component for filter sidebar
+function FilterSidebar({ onFilterChange }) {
+  const [filters, setFilters] = useState({
+    roomType: [],
+    style: [],
+    priceRange: [0, 1000],
+    dimensions: { width: [0, 100], height: [0, 100], depth: [0, 100] },
+    color: '',
+    material: []
+  });
+
+  const handleFilterChange = (category, value) => {
+    setFilters(prevFilters => ({
+      ...prevFilters,
+      [category]: value
+    }));
+    onFilterChange(filters);
+  };
+
+  return (
+    <div className="filter-sidebar">
+      <h3>Filters</h3>
+      <CategoryFilter 
+        title="Room Type" 
+        options={['Living Room', 'Bedroom', 'Kitchen']} 
+        onChange={value => handleFilterChange('roomType', value)}
+      />
+      <CategoryFilter 
+        title="Style" 
+        options={['Rustic', 'Modern', 'Antique']} 
+        onChange={value => handleFilterChange('style', value)}
+      />
+      <RangeSlider 
+        title="Price" 
+        min={0} 
+        max={1000} 
+        onChange={value => handleFilterChange('priceRange', value)}
+      />
+      {/* Add more filter components here */}
+    </div>
+  );
+}
+
+// Backend: Express.js route for handling filter requests
+app.get('/api/products', async (req, res) => {
+  const { roomType, style, priceMin, priceMax, ...otherFilters } = req.query;
+  
+  let query = {};
+  
+  if (roomType) query.roomType = { $in: roomType.split(',') };
+  if (style) query.style = { $in: style.split(',') };
+  if (priceMin || priceMax) {
+    query.price = {};
+    if (priceMin) query.price.$gte = parseFloat(priceMin);
+    if (priceMax) query.price.$lte = parseFloat(priceMax);
+  }
+  
+  // Add other filters to the query...
+
+  try {
+    const products = await Product.find(query);
+    res.json(products);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching products' });
+  }
+});
